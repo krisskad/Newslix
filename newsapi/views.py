@@ -330,11 +330,15 @@ class NewsLookupSet(ViewSet):
         if author:
             queryset = queryset.filter(author = author)
 
-        if start_date:
-            queryset = queryset.filter(date__gte = start_date)
+        if start_date is None and end_date is None:
+            queryset = queryset.filter(date__gte = datetime.now().date())
 
-        if end_date:
-            queryset = queryset.filter(date__lte = end_date)
+        else:
+            if start_date:
+                queryset = queryset.filter(date__gte=start_date)
+
+            if end_date:
+                queryset = queryset.filter(date__lte=end_date)
 
         response = queryset.values(
             "country__name",
