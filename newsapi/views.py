@@ -12,9 +12,10 @@ from datetime import datetime
 from django.db.models import Q, Count, Sum
 from operator import and_, or_
 from functools import reduce
-
+from .helpers import get_word_freq
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from cleantext import clean
 
 import os
 from django.conf import settings
@@ -142,6 +143,21 @@ class UploadViewSet(ViewSet):
                             else:
                                 category_ins, created = Category.objects.get_or_create(name=category)
 
+                            title = clean(title,
+                                  fix_unicode=True,  # fix various unicode errors
+                                  to_ascii=True,  # transliterate to closest ASCII representation
+                                  lower=True)
+
+                            description = clean(description,
+                                          fix_unicode=True,  # fix various unicode errors
+                                          to_ascii=True,  # transliterate to closest ASCII representation
+                                          lower=True)
+
+                            content = clean(content,
+                                          fix_unicode=True,  # fix various unicode errors
+                                          to_ascii=True,  # transliterate to closest ASCII representation
+                                          lower=True)
+
                             ts = NewsTimeSeries.objects.create(
                                 author=author_ins,
                                 publication=publication_ins,
@@ -150,7 +166,8 @@ class UploadViewSet(ViewSet):
                                 date=date,
                                 source_url=source_url,
                                 image_url=image_url,
-                                description=description
+                                description=description,
+                                category = category_ins
                             )
                             c=c+1
 
@@ -218,6 +235,21 @@ class FetchNews(ViewSet):
 
 
                     ############
+                    title = clean(str(title),
+                                  fix_unicode=True,  # fix various unicode errors
+                                  to_ascii=True,  # transliterate to closest ASCII representation
+                                  lower=True)
+
+                    description = clean(str(description),
+                                        fix_unicode=True,  # fix various unicode errors
+                                        to_ascii=True,  # transliterate to closest ASCII representation
+                                        lower=True)
+
+                    content = clean(str(content),
+                                    fix_unicode=True,  # fix various unicode errors
+                                    to_ascii=True,  # transliterate to closest ASCII representation
+                                    lower=True)
+
                     all_data = str(title) + " | " + str(description) + " | " + str(content)
                     sentiment = sia.polarity_scores(all_data)
                     sentiment_compound = sentiment["compound"]
@@ -225,7 +257,6 @@ class FetchNews(ViewSet):
                     sentiment_neg = sentiment["neg"]
                     sentiment_pos = sentiment["pos"]
                     ############
-
                     # print(publication, author, date)
                     # break
                     if author is None:
@@ -351,13 +382,41 @@ class NewsLookupSet(ViewSet):
             "source_url",
             "image_url",
             "sentiment_compound",
-            "sentiment_pos",
-            "sentiment_neg",
-            "sentiment_neu",
+            # "sentiment_pos",
+            # "sentiment_neg",
+            # "sentiment_neu",
             "date"
         ).order_by("date")
 
-        return Response(response)
+        if queryset.exists():
+            # print(result)
+            if queryset.count() > 100:
+                result = queryset[:100]
+
+            result = queryset.values(
+                "title",
+                "content",
+                "description"
+            )
+            df = pd.DataFrame.from_dict(result)
+
+            kwd = get_word_freq(df)
+            # kwd = kwd[kwd["value"] > 1]
+            print(kwd)
+            result = kwd[:10].to_dict(orient="records")
+
+            # print(result)
+            context = {
+                "news":response,
+                "trend":result
+            }
+            return Response(context)
+        else:
+            context = {
+                "news":{},
+                "trend": {}
+            }
+            return Response(context)
 
 
 class GetFilter(ViewSet):
@@ -435,8 +494,8 @@ class GetSentimentSplit(ViewSet):
             negative = queryset.filter(category=each["category__id"], sentiment_compound__lt=-0.25).count()
             neutral = queryset.filter(
                 category=each["category__id"],
-                sentiment_compound__gt=-0.25,
-                sentiment_compound__lt=0.25).count()
+                sentiment_compound__gte=-0.25,
+                sentiment_compound__lte=0.25).count()
             total = positive + negative + neutral
             context[each["category__name"]] = {
                 "total": total,
@@ -449,8 +508,8 @@ class GetSentimentSplit(ViewSet):
         context["total_positive"] = queryset.filter(sentiment_compound__gt=0.25).count()
         context["total_negative"] = queryset.filter(sentiment_compound__lt=-0.25).count()
         context["total_neutral"] = queryset.filter(
-            sentiment_compound__gt=-0.25,
-            sentiment_compound__lt=0.25
+            sentiment_compound__gte=-0.25,
+            sentiment_compound__lte=0.25
         ).count()
         context["total"] = context["total_positive"] + context["total_negative"] + context["total_neutral"]
 
