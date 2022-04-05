@@ -391,14 +391,11 @@ class NewsLookupSet(ViewSet):
         if queryset.exists():
             # print(result)
             if queryset.count() > 100:
-                result = queryset[:100]
+                response = queryset[:100]
 
-            result = queryset.values(
-                "title",
-                "content",
-                "description"
-            )
-            df = pd.DataFrame.from_dict(result)
+            df = pd.DataFrame.from_dict(response)
+
+            df['content'] = df['content'].fillna(df['description'])
 
             kwd = get_word_freq(df)
             # kwd = kwd[kwd["value"] > 1]
