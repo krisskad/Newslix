@@ -378,7 +378,7 @@ class NewsLookupSet(ViewSet):
             "publication__name",
             "title",
             "content",
-            # "description",
+            "description",
             "source_url",
             "image_url",
             "sentiment_compound",
