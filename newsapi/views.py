@@ -402,7 +402,7 @@ class NewsLookupSet(ViewSet):
 
             kwd = get_word_freq(df)
             # kwd = kwd[kwd["value"] > 1]
-            print(kwd)
+            # print(kwd)
             result = kwd[:10].to_dict(orient="records")
 
             # print(result)
@@ -413,8 +413,8 @@ class NewsLookupSet(ViewSet):
             return Response(context)
         else:
             context = {
-                "news":{},
-                "trend": {}
+                "news":[],
+                "trend": []
             }
             return Response(context)
 
