@@ -20,25 +20,24 @@ STOPWORDS_v1 = {"|", "today","india","'", "none",':', "can", "]", "[", ")", "(",
 STOPWORDS_v1.update(STOPWORDS)
 
 
+def topic_extract(a):
+    kw_extractor = yake.KeywordExtractor(top=5, stopwords=STOPWORDS_v1)
+    keywords = kw_extractor.extract_keywords(a)
+
+    ll = set()
+    for kw, v in keywords:
+        ll.add(kw)
+    # print(a, ll)
+    return ll
+
+
 def get_word_freq(df):
     df = df.fillna("")
 
     # Same results.
-    df["raw"] = df["title"] + " " + df["content"] + " " + df["description"]
 
-    def topic_extract(a):
-        kw_extractor = yake.KeywordExtractor(top=5, stopwords=STOPWORDS_v1)
-        keywords = kw_extractor.extract_keywords(a)
-
-        ll = set()
-        for kw, v in keywords:
-            ll.add(kw)
-        return " ".join(ll)
-
-    df['raw'] = df['raw'].apply(lambda x: topic_extract(x))
-
-    df['text'] = df['raw'].apply(
-        lambda x: ' '.join([word for word in set(x.split(" ")) if word.lower() not in STOPWORDS_v1]))
+    df['text'] = df['tags'].apply(
+        lambda x: ', '.join([word for word in x if word.lower() not in STOPWORDS_v1]))
     # print(df)
     res = df.text.str.split(expand=True).stack().value_counts()
     # print(res.to_frame())

@@ -12,7 +12,7 @@ from datetime import datetime
 from django.db.models import Q, Count, Sum
 from operator import and_, or_
 from functools import reduce
-from .helpers import get_word_freq
+from .helpers import get_word_freq, topic_extract
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from cleantext import clean
@@ -388,11 +388,15 @@ class NewsLookupSet(ViewSet):
 
         if queryset.exists():
             # print(result)
-            if queryset.count() > 100:
-                response = response[:100]
+            # if queryset.count() > 100:
+            #     response = response[:100]
 
             df = pd.DataFrame.from_dict(response)
             # print(df)
+            df["tags"] = df["title"] + " " + df["content"] + " " + df["description"]
+
+            df['tags'] = df['tags'].apply(lambda x: topic_extract(x))
+
             df['content'] = df['content'].fillna(df['description'])
 
             kwd = get_word_freq(df)
@@ -420,10 +424,10 @@ class GetFilter(ViewSet):
         queryset = NewsTimeSeries.objects.all().order_by("-date")
 
         date = {"start_date":queryset.last().date, "end_date":queryset.first().date}
-        country = Country.objects.values("name", "id")
-        category = Category.objects.values("name", "id")
-        author = Author.objects.values("name", "id")
-        publication = Publication.objects.values("name", "id")
+        country = Country.objects.filter(newstimeseries__title__isnull=False).values_list("id").distinct().values("name", "id")
+        category = Category.objects.filter(newstimeseries__title__isnull=False).values_list("id").distinct().values("name", "id")
+        author = Author.objects.filter(newstimeseries__title__isnull=False).values_list("id").distinct().values("name", "id")
+        publication = Publication.objects.filter(newstimeseries__title__isnull=False).values_list("id").distinct().values("name", "id")
 
         response = {
             "date":date,
