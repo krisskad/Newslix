@@ -404,7 +404,7 @@ class NewsLookupSet(ViewSet):
 
             # print(result)
             context = {
-                "news":response,
+                "news":df.to_dict(orient="records"),
                 "trend":result
             }
             return Response(context)
