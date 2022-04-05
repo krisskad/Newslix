@@ -319,7 +319,7 @@ class NewsLookupSet(ViewSet):
             "sentiment_neu",
             "date"
 
-        ).order_by("-date")[:5]
+        ).order_by("-date")[:1]
         # start_date = queryset.last().date
         # end_date = queryset.first().date
         # count = queryset.count()
@@ -364,13 +364,11 @@ class NewsLookupSet(ViewSet):
         if start_date is None and end_date is None:
             queryset = queryset.filter(date__gte = datetime.now().date())
 
-        else:
-            if start_date:
-                queryset = queryset.filter(date__gte=start_date)
+        elif start_date and end_date:
+            queryset = queryset.filter(date__lte=end_date, date__gte=start_date)
 
-            if end_date:
-                queryset = queryset.filter(date__lte=end_date)
 
+        # print(queryset)
         response = queryset.values(
             "country__name",
             "category__name",
@@ -391,10 +389,10 @@ class NewsLookupSet(ViewSet):
         if queryset.exists():
             # print(result)
             if queryset.count() > 100:
-                response = queryset[:100]
+                response = response[:100]
 
             df = pd.DataFrame.from_dict(response)
-
+            # print(df)
             df['content'] = df['content'].fillna(df['description'])
 
             kwd = get_word_freq(df)
