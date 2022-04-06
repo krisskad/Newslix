@@ -366,10 +366,12 @@ class NewsLookupSet(ViewSet):
 
         else:
             if start_date:
-                queryset = queryset.filter(date__gte=start_date)
+                queryset = queryset.filter(date__date__gte=start_date)
 
             if end_date:
-                queryset = queryset.filter(date__lte=end_date)
+                queryset = queryset.filter(date__date__lte=end_date)
+
+
 
 
         # print(queryset)
