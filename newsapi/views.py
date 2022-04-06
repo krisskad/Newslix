@@ -364,8 +364,12 @@ class NewsLookupSet(ViewSet):
         if start_date is None and end_date is None:
             queryset = queryset.filter(date__gte = datetime.now().date())
 
-        elif start_date and end_date:
-            queryset = queryset.filter(date__lte=end_date, date__gte=start_date)
+        else:
+            if start_date:
+                queryset = queryset.filter(date__gte=start_date)
+
+            if end_date:
+                queryset = queryset.filter(date__lte=end_date)
 
 
         # print(queryset)
